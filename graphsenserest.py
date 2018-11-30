@@ -129,6 +129,15 @@ def address(currency, address):
     result = query_address(currency, address)
     return jsonify(result.__dict__) if result else jsonify({})
 
+@app.route('/<currency>/address_with_tags/<address>')
+def address_with_tags(currency, address):
+    if not address:
+        abort(404, "Address not provided")
+
+    result = query_address(currency, address)
+    result.tags = query_address_tags(currency, address)
+    return jsonify(result.__dict__) if result else jsonify({})
+
 @app.route('/<currency>/address/<address>/transactions')
 def address_transactions(currency, address):
     if not address:
@@ -177,6 +186,16 @@ def address_cluster(currency, address):
     address_cluster = query_address_cluster(currency, address)
     return jsonify(address_cluster)
 
+@app.route('/<currency>/address/<address>/cluster_with_tags')
+def address_cluster_with_tags(currency, address):
+    if not address:
+        abort(404, "Address not provided")
+
+    address_cluster = query_address_cluster(currency, address)
+    if 'cluster' in address_cluster:
+        address_cluster['tags'] = query_cluster_tags(currency, address_cluster['cluster'])
+    return jsonify(address_cluster)
+
 @app.route('/<currency>/address/<address>/egonet')
 def address_egonet(currency, address):
     direction = request.args.get('direction')
@@ -210,6 +229,14 @@ def cluster(currency, cluster):
     except:
         abort(404, "Invalid cluster ID")
     cluster_obj = query_cluster(currency, cluster)
+    return jsonify(cluster_obj.__dict__) if cluster_obj else jsonify({})
+
+@app.route('/<currency>/cluster_with_tags/<cluster>')
+def cluster_with_tags(currency, cluster):
+    if not cluster:
+        abort(404, "Cluster id not provided")
+    cluster_obj = query_cluster(currency, cluster)
+    cluster_obj.tags = query_cluster_tags(currency, cluster)
     return jsonify(cluster_obj.__dict__) if cluster_obj else jsonify({})
 
 @app.route('/<currency>/cluster/<cluster>/tags')
