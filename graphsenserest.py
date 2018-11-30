@@ -134,16 +134,24 @@ def address_transactions(currency, address):
     if not address:
         abort(404, "Address not provided")
     limit = request.args.get('limit')
-    if not limit:
-        limit = 100
-    else:
+    if limit is not None:
         try:
             limit = int(limit)
         except:
             abort(404, 'Invalid limit value')
-    rows = query_address_transactions(currency, address, limit)
+    pagesize = request.args.get('pagesize')
+    if pagesize is not None:
+        try:
+            pagesize = int(pagesize)
+        except:
+            abort(404, 'Invalid pagesize value')
+    page_state = request.args.get('page')
+    (page_state, rows) = query_address_transactions(currency, page_state, address, pagesize, limit)
     txs = [AddressTransactions(row, query_exchange_rate_for_height(currency, row.height)).__dict__ for row in rows]
-    return jsonify(txs)
+    return jsonify({
+        "nextPage": page_state.hex() if page_state is not None else None,
+        "transactions": txs
+    })
 
 @app.route('/<currency>/address/<address>/tags')
 def address_tags(currency, address):
@@ -224,15 +232,23 @@ def cluster_addresses(currency, cluster):
     except:
         abort(404, "Invalid cluster ID")
     limit = request.args.get('limit')
-    if not limit:
-        limit = 100
-    else:
+    if limit is not None:
         try:
             limit = int(limit)
         except:
             abort(404, 'Invalid limit value')
-    addresses = query_cluster_addresses(currency, cluster, int(limit))
-    return jsonify(addresses)
+    pagesize = request.args.get('pagesize')
+    if pagesize is not None:
+        try:
+            pagesize = int(pagesize)
+        except:
+            abort(404, 'Invalid pagesize value')
+    page = request.args.get('page')
+    (page, addresses) = query_cluster_addresses(currency, cluster, page, pagesize, limit)
+    return jsonify({
+        "nextPage" : page.hex() if page is not None else None,
+        "addresses" : addresses
+        })
 
 
 @app.route('/<currency>/cluster/<cluster>/egonet')
