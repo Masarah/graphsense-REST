@@ -208,17 +208,55 @@ def address_egonet(currency, address):
     else:
         limit = int(limit)
     try:
+        _,incoming = query_address_incoming_relations(currency, None, address, None, int(limit))
+        _,outgoing = query_address_outgoing_relations(currency, None, address, None, int(limit))
         egoNet = AddressEgoNet(
             query_address(currency, address),
             query_address_tags(currency, address),
             query_implicit_tags(currency, address),
-            query_address_incoming_relations(currency, address, int(limit)),
-            query_address_outgoing_relations(currency, address, int(limit))
+            incoming,
+            outgoing
         )
         ret = egoNet.construct(address, direction)
     except:
         ret = {}
     return jsonify(ret)
+
+@app.route('/<currency>/address/<address>/neighbors')
+def address_neighbors(currency, address):
+    direction = request.args.get('direction')
+    if not direction:
+        abort(404, 'direction value missing')
+    if 'in' in direction:
+        isOutgoing = False
+    elif 'out' in direction:
+        isOutgoing = True
+    else:
+        abort(404, 'invalid direction value - has to be either in or out')
+        
+
+    limit = request.args.get('limit')
+    if limit is not None:
+        try:
+            limit = int(limit)
+        except:
+            abort(404, 'Invalid limit value')
+
+    pagesize = request.args.get('pagesize')
+    if pagesize is not None:
+        try:
+            pagesize = int(pagesize)
+        except:
+            abort(404, 'Invalid pagesize value')
+    page_state = request.args.get('page')
+    if isOutgoing:
+        (page_state, rows) = query_address_outgoing_relations(currency, page_state, address, pagesize, limit)
+    else:
+        (page_state, rows) = query_address_incoming_relations(currency, page_state, address, pagesize, limit)
+    return jsonify({
+        "nextPage": page_state.hex() if page_state is not None else None,
+        "neighbors": [row.toJson() for row in rows]
+    })
 
 @app.route('/<currency>/cluster/<cluster>')
 def cluster(currency, cluster):
@@ -310,6 +348,42 @@ def cluster_egonet(currency, cluster):
         ret = {}
     return jsonify(ret)
 
+@app.route('/<currency>/cluster/<cluster>/neighbors')
+def cluster_neighbors(currency, cluster):
+    direction = request.args.get('direction')
+    if not direction:
+        abort(404, 'direction value missing')
+    if 'in' in direction:
+        isOutgoing = False
+    elif 'out' in direction:
+        isOutgoing = True
+    else:
+        abort(404, 'invalid direction value - has to be either in or out')
+        
+
+    limit = request.args.get('limit')
+    if limit is not None:
+        try:
+            limit = int(limit)
+        except:
+            abort(404, 'Invalid limit value')
+
+    pagesize = request.args.get('pagesize')
+    if pagesize is not None:
+        try:
+            pagesize = int(pagesize)
+        except:
+            abort(404, 'Invalid pagesize value')
+    page_state = request.args.get('page')
+    if isOutgoing:
+        (page_state, rows) = query_cluster_outgoing_relations(currency, page_state, cluster, pagesize, limit)
+    else:
+        (page_state, rows) = query_cluster_incoming_relations(currency, page_state, cluster, pagesize, limit)
+    return jsonify({
+        "nextPage": page_state.hex() if page_state is not None else None,
+        "neighbors": [row.toJson() for row in rows]
+    })
+
 @app.errorhandler(400)
 def custom400(error):
     return jsonify({'message': error.description})
@@ -317,6 +391,7 @@ def custom400(error):
 if __name__ == '__main__':
     connect(app)
     app.run(port=9000, debug=True, processes=1)
+
 # @app.teardown_appcontext
 # def cluster_shutdown(error):
 #     """Shutdown all connections to cassandra."""

@@ -191,6 +191,16 @@ class AddressIncomingRelations(object):
                  "transactions" : self.noTransactions,
                  "estimatedValue" : self.estimatedValue }
         return edge
+    def toJson(self):
+        return {
+            "id" : self.id(),
+            "nodeType" : "address",
+            "category" : self.srcCategory.name,
+            "received" : self.srcProperties.totalReceived,
+            "balance" : self.srcProperties.totalReceived - self.srcProperties.totalSpent,  # satoshi
+            "noTransactions" : self.noTransactions,
+            "estimatedValue" : self.estimatedValue
+        }
 
 
 class AddressOutgoingRelations(object):
@@ -220,6 +230,16 @@ class AddressOutgoingRelations(object):
                  "transactions" : self.noTransactions,
                  "estimatedValue" : self.estimatedValue }
         return edge
+    def toJson(self):
+        return {
+            "id" : self.id(),
+            "nodeType" : 'address',
+            "category" : self.dstCategory.name,
+            "received" : self.dstProperties.totalReceived,
+            "balance" : self.dstProperties.totalReceived - self.dstProperties.totalSpent,  # satoshi
+            "noTransactions" : self.noTransactions,
+            "estimatedValue" : self.estimatedValue
+        }
 
 class ClusterSummary(object):
     def __init__(self, no_addresses, total_received, total_spent):
@@ -253,6 +273,16 @@ class ClusterIncomingRelations(object):
                  "transactions" : self.noTransactions,
                  "estimatedValue" : self.value }
         return edge
+    def toJson(self):
+        return {
+            "id" : self.id(),
+            "nodeType" : "cluster" if self.id().isdigit() else 'address',
+            "category" : self.srcCategory.name,
+            "received" : self.srcProperties.totalReceived,
+            "balance" : self.srcProperties.totalReceived - self.srcProperties.totalSpent,  # satoshi
+            "noTransactions" : self.noTransactions,
+            "estimatedValue" : self.value
+        }
 
 class ClusterOutgoingRelations(object):
     def __init__(self, row):
@@ -280,6 +310,16 @@ class ClusterOutgoingRelations(object):
                  "transactions" : self.noTransactions,
                  "estimatedValue" : self.value }
         return edge
+    def toJson(self):
+        return {
+            "id" : self.id(),
+            "nodeType" : "cluster" if self.id().isdigit() else 'address',
+            "category" : self.dstCategory.name,
+            "received" : self.dstProperties.totalReceived,
+            "balance" : self.dstProperties.totalReceived - self.dstProperties.totalSpent,  # satoshi
+            "noTransactions" : self.noTransactions,
+            "estimatedValue" : self.value
+        }
 
 
 
