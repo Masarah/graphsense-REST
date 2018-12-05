@@ -139,10 +139,11 @@ class Address(object):
 
 def compute_balance(total_received_satoshi, total_spent_satoshi, exchange_rate):
     balance_satoshi = total_received_satoshi - total_spent_satoshi
-    balance = Value(balance_satoshi, round(balance_satoshi*exchange_rate.eur*1e-8, 2),
-                    round(balance_satoshi*exchange_rate.usd*1e-8, 2))
+    balance = compute_exchanged_value(balance_satoshi, exchange_rate)
     return balance
 
+def compute_exchanged_value(value, exchange_rate):
+    return Value(value, round(value*exchange_rate.eur*1e-8, 2), round(value*exchange_rate.usd*1e-8, 2))
 
 class AddressTransactions(object):
     def __init__(self, row, rates):
@@ -174,13 +175,15 @@ class Cluster(object):
 
 
 class AddressIncomingRelations(object):
-    def __init__(self, row):
+    def __init__(self, row, exchange_rate):
         self.dstAddressPrefix = row.dst_address_prefix
         self.dstAddress = row.dst_address
         self.srcCategory = Category(row.src_category)
         self.estimatedValue = Value(row.estimated_value.satoshi, round(row.estimated_value.eur, 2), round(row.estimated_value.usd, 2)).__dict__
         self.srcAddress = row.src_address
         self.noTransactions = row.no_transactions
+        self.srcBalance = compute_balance(row.src_properties.total_received, row.src_properties.total_spent, exchange_rate)
+        self.srcTotalReceived = compute_exchanged_value(row.src_properties.total_received, exchange_rate)
         self.srcProperties = AddressSummary(row.src_properties.total_received, row.src_properties.total_spent)
 
     def id(self):
@@ -205,21 +208,24 @@ class AddressIncomingRelations(object):
             "id" : self.id(),
             "nodeType" : "address",
             "category" : self.srcCategory.name,
-            "received" : self.srcProperties.totalReceived,
-            "balance" : self.srcProperties.totalReceived - self.srcProperties.totalSpent,  # satoshi
+            "received" : self.srcTotalReceived.__dict__,
+            "balance" : self.srcBalance.__dict__,
             "noTransactions" : self.noTransactions,
             "estimatedValue" : self.estimatedValue
         }
 
 
 class AddressOutgoingRelations(object):
-    def __init__(self, row):
+    def __init__(self, row, exchange_rate):
+        print(row)
         self.srcAddressPrefix = row.src_address_prefix
         self.srcAddress = row.src_address
         self.dstCategory = Category(row.dst_category)
         self.estimatedValue = Value(row.estimated_value.satoshi, round(row.estimated_value.eur, 2), round(row.estimated_value.usd, 2)).__dict__
         self.dstAddress = row.dst_address
         self.noTransactions = row.no_transactions
+        self.dstBalance = compute_balance(row.dst_properties.total_received, row.dst_properties.total_spent, exchange_rate)
+        self.dstTotalReceived = compute_exchanged_value(row.dst_properties.total_received, exchange_rate)
         self.dstProperties = AddressSummary(row.dst_properties.total_received, row.dst_properties.total_spent)
 
     def id(self):
@@ -244,8 +250,8 @@ class AddressOutgoingRelations(object):
             "id" : self.id(),
             "nodeType" : 'address',
             "category" : self.dstCategory.name,
-            "received" : self.dstProperties.totalReceived,
-            "balance" : self.dstProperties.totalReceived - self.dstProperties.totalSpent,  # satoshi
+            "received" : self.dstTotalReceived.__dict__,
+            "balance" : self.dstBalance.__dict__,
             "noTransactions" : self.noTransactions,
             "estimatedValue" : self.estimatedValue
         }
@@ -259,13 +265,15 @@ class ClusterSummary(object):
 
 
 class ClusterIncomingRelations(object):
-    def __init__(self, row):
+    def __init__(self, row, exchange_rate):
         self.dstCluster = str(row.dst_cluster)
         self.srcCluster = str(row.src_cluster)
         self.srcCategory = Category(row.src_category)
         self.srcProperties = ClusterSummary(row.src_properties.no_addresses, row.src_properties.total_received, row.src_properties.total_spent)
         self.value = Value(row.value.satoshi, round(row.value.eur, 2), round(row.value.usd, 2)).__dict__
         self.noTransactions = row.no_transactions
+        self.srcBalance = compute_balance(row.src_properties.total_received, row.src_properties.total_spent, exchange_rate)
+        self.srcTotalReceived = compute_exchanged_value(row.src_properties.total_received, exchange_rate)
 
     def id(self):
         return self.srcCluster
@@ -289,21 +297,23 @@ class ClusterIncomingRelations(object):
             "id" : self.id(),
             "nodeType" : "cluster" if self.id().isdigit() else 'address',
             "category" : self.srcCategory.name,
-            "received" : self.srcProperties.totalReceived,
-            "balance" : self.srcProperties.totalReceived - self.srcProperties.totalSpent,  # satoshi
+            "received" : self.srcTotalReceived.__dict__,
+            "balance" : self.srcBalance.__dict__,
             "noTransactions" : self.noTransactions,
             "estimatedValue" : self.value
         }
 
 
 class ClusterOutgoingRelations(object):
-    def __init__(self, row):
+    def __init__(self, row, exchange_rate):
         self.srcCluster = str(row.src_cluster)
         self.dstCluster = str(row.dst_cluster)
         self.dstCategory = Category(row.dst_category)
         self.dstProperties = ClusterSummary(row.dst_properties.no_addresses, row.dst_properties.total_received, row.dst_properties.total_spent)
         self.value = Value(row.value.satoshi, round(row.value.eur, 2), round(row.value.usd, 2)).__dict__
         self.noTransactions = row.no_transactions
+        self.dstBalance = compute_balance(row.dst_properties.total_received, row.dst_properties.total_spent, exchange_rate)
+        self.dstTotalReceived = compute_exchanged_value(row.dst_properties.total_received, exchange_rate)
 
     def id(self):
         return self.dstCluster
@@ -327,8 +337,8 @@ class ClusterOutgoingRelations(object):
             "id" : self.id(),
             "nodeType" : "cluster" if self.id().isdigit() else 'address',
             "category" : self.dstCategory.name,
-            "received" : self.dstProperties.totalReceived,
-            "balance" : self.dstProperties.totalReceived - self.dstProperties.totalSpent,  # satoshi
+            "received" : self.dstTotalReceived.__dict__,
+            "balance" : self.dstBalance.__dict__,
             "noTransactions" : self.noTransactions,
             "estimatedValue" : self.value
         }

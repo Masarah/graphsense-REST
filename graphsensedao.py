@@ -189,7 +189,8 @@ def query_address_incoming_relations(currency, page_state, address, pagesize, li
     else:
         rows = session.execute(query[currency], params)
     page_state = rows.paging_state
-    relations = [AddressIncomingRelations(row) for (row) in rows.current_rows]
+    exchange_rate = ExchangeRate(all_exchange_rates[currency].query('height==' + str(last_height[currency])))
+    relations = [AddressIncomingRelations(row, exchange_rate) for (row) in rows.current_rows]
     return page_state, relations
 
 def query_address_outgoing_relations(currency, page_state, address, pagesize, limit):
@@ -208,7 +209,8 @@ def query_address_outgoing_relations(currency, page_state, address, pagesize, li
     else:
         rows = session.execute(query[currency], params)
     page_state = rows.paging_state
-    relations = [AddressOutgoingRelations(row) for (row) in rows.current_rows]
+    exchange_rate = ExchangeRate(all_exchange_rates[currency].query('height==' + str(last_height[currency])))
+    relations = [AddressOutgoingRelations(row, exchange_rate) for (row) in rows.current_rows]
     return page_state, relations
 
 
@@ -263,7 +265,8 @@ def query_cluster_incoming_relations(currency, page_state, cluster, pagesize, li
     else:
         rows = session.execute(query[currency], params)
     page_state = rows.paging_state
-    relations = [ClusterIncomingRelations(row) for (row) in rows.current_rows]
+    exchange_rate = ExchangeRate(all_exchange_rates[currency].query('height==' + str(last_height[currency])))
+    relations = [ClusterIncomingRelations(row, exchange_rate) for (row) in rows.current_rows]
     return page_state, relations
 
 def query_cluster_outgoing_relations(currency, page_state, cluster, pagesize, limit):
@@ -282,7 +285,8 @@ def query_cluster_outgoing_relations(currency, page_state, cluster, pagesize, li
     else:
         rows = session.execute(query[currency], params)
     page_state = rows.paging_state
-    relations = [ClusterOutgoingRelations(row) for (row) in rows.current_rows]
+    exchange_rate = ExchangeRate(all_exchange_rates[currency].query('height==' + str(last_height[currency])))
+    relations = [ClusterOutgoingRelations(row, exchange_rate) for (row) in rows.current_rows]
     return page_state, relations
 
 
