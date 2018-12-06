@@ -487,3 +487,5 @@ class ClusterAddresses(object):
         self.totalSpent = totalSpent.__dict__
         balance = compute_balance(row.total_received.satoshi, row.total_spent.satoshi, exchange_rate)
         self.balance = balance.__dict__
+        self.inDegree = row.in_degree
+        self.outDegree = row.out_degree
